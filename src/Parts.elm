@@ -3,7 +3,7 @@ module Parts exposing
   , Get, Set, embedView, embedUpdate
   , Index, Indexed, indexed
   , Msg
-  , partial, update, update', create, create1, accessors, Accessors
+  , partial, update, updateMaybe, create, create1, accessors, Accessors
   , generalize, pack, pack1
   )
 
@@ -181,8 +181,8 @@ update (Msg f) c =
 
 {-| Generic update function for `Msg`, explicit no-op 
 -}
-update' : Msg c obs -> c -> (Maybe c, Cmd obs)  
-update' (Msg f) c = 
+updateMaybe : Msg c obs -> c -> (Maybe c, Cmd obs)  
+updateMaybe (Msg f) c = 
   f c 
   
 
@@ -263,7 +263,7 @@ create
 create view update get0 set0 model0 fwd = 
   let
     get = 
-      fst (indexed get0 set0 model0)
+      Tuple.first (indexed get0 set0 model0)
 
     embeddedUpdate = 
       pack update get0 set0 model0 fwd
@@ -316,11 +316,14 @@ accessors get0 set0 model0 idx =
   let
     (get, set) =
       indexed get0 set0 model0 
+
+    reset c = set0 (get0 c |> Dict.remove idx) c
   in
     { get = get idx
     , set = set idx
     , map = \f c -> (get idx) c |> f |> flip (set idx) c
-    , reset = \c -> get0 c |> Dict.remove idx |> (\m -> set0 m c)
+    , reset = reset
+    --, reset = \c -> get0 c |> Dict.remove idx |> (\m -> set0 m c)
     }
 
 
